@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #define PORT 12345
+#define MAX_DATA_SIZE 1024
 
 #define ERROR(func_name) (printf("ERROR in function '%s'.\n", (func_name)))
 
@@ -49,6 +50,14 @@ int main(int argc, char const *argv[])
         return -1;
     }
     printf("Accepted a connection of %s.\n", inet_ntoa(addr_client.sin_addr));
+    char *p_buffer = new char[MAX_DATA_SIZE];
+    int len_data = recv(connfd, p_buffer, MAX_DATA_SIZE, 0);
+    if (0 < len_data)
+    {
+        p_buffer[len_data] = '\0';
+        printf("Got data: %s.\n", p_buffer);
+    }
+    delete p_buffer;
     close(connfd);
     close(sockfd);
     printf("Server stopped.\n");
