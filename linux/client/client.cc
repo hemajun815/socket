@@ -51,7 +51,16 @@ int main(int argc, char const *argv[])
             p_buffer[idx++] = ch;
         p_buffer[idx] = '\0';
         if (-1 != send(sockfd, p_buffer, strlen(p_buffer), 0))
-            printf("Sending data: %s.\n", p_buffer);
+        {
+            printf("Sent data: %s.\n", p_buffer);
+            bzero(p_buffer, MAX_DATA_SIZE);
+            int len_data = recv(sockfd, p_buffer, MAX_DATA_SIZE, 0);
+            if (0 < len_data)
+            {
+                p_buffer[len_data] = '\0';
+                printf("Received data: %s.\n", p_buffer);
+            }
+        }
     }
     delete p_buffer;
     close(sockfd);

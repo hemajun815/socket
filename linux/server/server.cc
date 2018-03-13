@@ -57,7 +57,9 @@ int main(int argc, char const *argv[])
         if (0 < len_data)
         {
             p_buffer[len_data] = '\0';
-            printf("Got data: %s.\n", p_buffer);
+            printf("Received data: %s.\n", p_buffer);
+            if (-1 != send(connfd, p_buffer, strlen(p_buffer), 0))
+                printf("Sent data: %s.\n", p_buffer);
         }
         else
             break;
