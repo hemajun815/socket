@@ -17,7 +17,7 @@
 typedef struct sockaddr sockaddr;
 typedef struct sockaddr_in sockaddr_in;
 
-int main(int argc, char const *argv[])
+int start_server(const int& port)
 {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == sockfd)
@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
     bzero(&addr_server, sizeof(sockaddr_in));
     addr_server.sin_family = AF_INET;
     addr_server.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr_server.sin_port = htons(PORT);
+    addr_server.sin_port = htons(port);
     if (-1 == bind(sockfd, (sockaddr *)&addr_server, sizeof(sockaddr_in)))
     {
         ERROR("bind");
@@ -40,15 +40,11 @@ int main(int argc, char const *argv[])
         ERROR("listen");
         return -1;
     }
-    printf("Server started.\n");
-    sockaddr_in addr_client;
-    socklen_t socklen_client = sizeof(addr_client);
-    int connfd = accept(sockfd, (sockaddr *)&addr_client, &socklen_client);
-    if (-1 == connfd)
-    {
-        ERROR("accept");
-        return -1;
-    }
+    return sockfd;
+}
+
+void communicate(const int& connfd, const sockaddr_in& addr_client)
+{
     printf("Accepted a connection of %s.\n", inet_ntoa(addr_client.sin_addr));
     char *p_buffer = new char[MAX_DATA_SIZE];
     while (true)
@@ -66,6 +62,23 @@ int main(int argc, char const *argv[])
     }
     delete p_buffer;
     close(connfd);
+}
+
+int main(int argc, char const *argv[])
+{
+    int sockfd = start_server(PORT);
+    if (-1 == sockfd)
+        return -1;
+    printf("Server started.\n");
+    sockaddr_in addr_client;
+    socklen_t socklen_client = sizeof(addr_client);
+    int connfd = accept(sockfd, (sockaddr *)&addr_client, &socklen_client);
+    if (-1 == connfd)
+    {
+        ERROR("accept");
+        return -1;
+    }
+    communicate(connfd, addr_client);
     close(sockfd);
     printf("Server stopped.\n");
     return 0;

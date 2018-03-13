@@ -17,13 +17,8 @@
 typedef struct sockaddr sockaddr;
 typedef struct sockaddr_in sockaddr_in;
 
-int main(int argc, char const *argv[])
+int connect_server(const char * server_ip, const int & port)
 {
-    if (2 != argc)
-    {
-        printf("Usage: %s <server_ip>\n", argv[0]);
-        return -1;
-    }
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (-1 == sockfd)
     {
@@ -33,13 +28,18 @@ int main(int argc, char const *argv[])
     sockaddr_in addr_server;
     bzero(&addr_server, sizeof(sockaddr_in));
     addr_server.sin_family = AF_INET;
-    inet_aton(argv[1], &addr_server.sin_addr);
-    addr_server.sin_port = htons(PORT);
+    inet_aton(server_ip, &addr_server.sin_addr);
+    addr_server.sin_port = htons(port);
     if (-1 == connect(sockfd, (sockaddr *)&addr_server, sizeof(sockaddr_in)))
     {
         ERROR("connect");
         return -1;
     }
+    return sockfd;
+}
+
+void communicate(const int& sockfd)
+{
     printf("Connected server succesfully.\n");
     char *p_buffer = new char[MAX_DATA_SIZE];
     while (true)
@@ -64,5 +64,18 @@ int main(int argc, char const *argv[])
     }
     delete p_buffer;
     close(sockfd);
+}
+
+int main(int argc, char const *argv[])
+{
+    if (2 != argc)
+    {
+        printf("Usage: %s <server_ip>\n", argv[0]);
+        return -1;
+    }
+    int sockfd = connect_server(argv[1], PORT);
+    if (-1 == sockfd)
+        return -1;
+    communicate(sockfd);
     return 0;
 }
