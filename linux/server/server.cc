@@ -51,11 +51,16 @@ int main(int argc, char const *argv[])
     }
     printf("Accepted a connection of %s.\n", inet_ntoa(addr_client.sin_addr));
     char *p_buffer = new char[MAX_DATA_SIZE];
-    int len_data = recv(connfd, p_buffer, MAX_DATA_SIZE, 0);
-    if (0 < len_data)
+    while (true)
     {
-        p_buffer[len_data] = '\0';
-        printf("Got data: %s.\n", p_buffer);
+        int len_data = recv(connfd, p_buffer, MAX_DATA_SIZE, 0);
+        if (0 < len_data)
+        {
+            p_buffer[len_data] = '\0';
+            printf("Got data: %s.\n", p_buffer);
+        }
+        else
+            break;
     }
     delete p_buffer;
     close(connfd);

@@ -42,14 +42,17 @@ int main(int argc, char const *argv[])
     }
     printf("Connected server succesfully.\n");
     char *p_buffer = new char[MAX_DATA_SIZE];
-    int idx = 0;
-    char ch;
-    printf("Please input your data: ");
-    while((ch = getchar()) != '\n')
-        p_buffer[idx++] = ch;
-    p_buffer[idx] = '\0';
-    if (-1 != send(sockfd, p_buffer, strlen(p_buffer), 0))
-        printf("Sending data: %s.\n", p_buffer);
+    while (true)
+    {
+        int idx = 0;
+        char ch;
+        printf("Please input your data: ");
+        while((ch = getchar()) != '\n')
+            p_buffer[idx++] = ch;
+        p_buffer[idx] = '\0';
+        if (-1 != send(sockfd, p_buffer, strlen(p_buffer), 0))
+            printf("Sending data: %s.\n", p_buffer);
+    }
     delete p_buffer;
     close(sockfd);
     return 0;
