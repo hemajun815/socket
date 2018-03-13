@@ -1,4 +1,4 @@
-target = client
+target = client.out
 cc = g++
 source = ./client.cc
 

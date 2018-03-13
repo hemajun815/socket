@@ -1,4 +1,4 @@
-target = server
+target = server.out
 cc = g++
 source = ./server.cc
 

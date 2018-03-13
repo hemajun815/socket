@@ -1,0 +1,5 @@
+# linux
+*.out
+
+# windows
+out.*
