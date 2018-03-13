@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define PORT 12345
 #define MAX_DATA_SIZE 1024
@@ -16,6 +17,11 @@
 
 typedef struct sockaddr sockaddr;
 typedef struct sockaddr_in sockaddr_in;
+typedef struct connection_info
+{
+    int connfd;
+    sockaddr_in addr;
+}connection_info;
 
 int start_server(const int& port)
 {
@@ -64,21 +70,42 @@ void communicate(const int& connfd, const sockaddr_in& addr_client)
     close(connfd);
 }
 
+void * thread_routine(void * thread_arg)
+{
+    connection_info * p_c_info = (connection_info *)thread_arg;
+    communicate(p_c_info->connfd, p_c_info->addr);
+    delete p_c_info;
+    pthread_exit(NULL);
+}
+
+void wait_connect(const int & sockfd)
+{
+    while (true)
+    {
+        sockaddr_in addr_client;
+        socklen_t socklen_client = sizeof(addr_client);
+        int connfd = accept(sockfd, (sockaddr *)&addr_client, &socklen_client);
+        if (-1 == connfd)
+            ERROR("accept");
+        else
+        {
+            pthread_t tid = 0;
+            connection_info * p_c_info = new connection_info();
+            p_c_info->connfd = connfd;
+            memcpy((void*)&(p_c_info->addr), (void*)&addr_client, socklen_client);
+            if (-1 == pthread_create(&tid, NULL, thread_routine, (void *)p_c_info))
+                ERROR("pthread_create");
+        }
+    }
+}
+
 int main(int argc, char const *argv[])
 {
     int sockfd = start_server(PORT);
     if (-1 == sockfd)
         return -1;
     printf("Server started.\n");
-    sockaddr_in addr_client;
-    socklen_t socklen_client = sizeof(addr_client);
-    int connfd = accept(sockfd, (sockaddr *)&addr_client, &socklen_client);
-    if (-1 == connfd)
-    {
-        ERROR("accept");
-        return -1;
-    }
-    communicate(connfd, addr_client);
+    wait_connect(sockfd);
     close(sockfd);
     printf("Server stopped.\n");
     return 0;

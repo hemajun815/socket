@@ -63,7 +63,6 @@ void communicate(const int& sockfd)
         }
     }
     delete p_buffer;
-    close(sockfd);
 }
 
 int main(int argc, char const *argv[])
@@ -77,5 +76,6 @@ int main(int argc, char const *argv[])
     if (-1 == sockfd)
         return -1;
     communicate(sockfd);
+    close(sockfd);
     return 0;
 }
