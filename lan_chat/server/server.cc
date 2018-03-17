@@ -90,6 +90,7 @@ void * process_thread_rountine(void * thread_arg)
         switch (p_req_package->package_type)
         {
             case PackageTypeRequestLogin:
+            {
                 p_res_package->package_type = PackageTypeResponceLogin;
                 p_res_package->sender_name = new char[strlen(p_req_package->receiver_name) + 1];
                 memcpy(p_res_package->sender_name, p_req_package->receiver_name, strlen(p_req_package->receiver_name));
@@ -97,12 +98,24 @@ void * process_thread_rountine(void * thread_arg)
                 p_res_package->receiver_name = new char[strlen(p_req_package->sender_name) + 1];
                 memcpy(p_res_package->receiver_name, p_req_package->sender_name, strlen(p_req_package->sender_name));
                 p_res_package->receiver_name[strlen(p_req_package->sender_name)] = '\0';
-                const char * ret_str = "OK";
+                bool is_ok = true;
+                const char * ret_str = is_ok ? "OK" : "NO";
                 int len_ret_str = strlen(ret_str);
                 p_res_package->data = new char[strlen(ret_str) + 1];
                 memcpy(p_res_package->data, ret_str, strlen(ret_str));
                 p_res_package->data[len_ret_str] = '\0';
                 break;
+            }
+            case PackageTypeMessage:
+            {
+                p_res_package->package_type = PackageTypeMessage;
+                break;
+            }
+            case PackageTypeRequestLogout:
+            {
+                p_res_package->package_type = PackageTypeResponceLogout;
+                break;
+            }
         }
         push(responces, p_data_package->sockfd, encode_package(p_res_package));
     }
