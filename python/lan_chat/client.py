@@ -30,19 +30,19 @@ class Client(object):
             if mess.lower() == 'exit':
                 with self.__lock:
                     self.__is_work = False
-                break;
+                break
             self.__sockfd.sendall(mess)
 
     def __recv_msg(self):
         while True:
             with self.__lock:
                 if not self.__is_work:
-                    break;
+                    break
             try:
                 mess = self.__sockfd.recv(self.__buf_size)
                 print(mess)
             except socket.timeout:
-                continue;
+                continue
 
     def run(self):
         send_proc = threading.Thread(target=self.__send_msg)
