@@ -9,9 +9,12 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define UDPPORT             24146 // udp port.
-#define TCPPORTFORCLIENT    25146 // tcp port for client.
-#define TCPPORTFORMONITOR   26146 // tcp port for monitor.
+#define SERVERIP            "127.0.0.1" // server ip
+#define UDPPORT_A           21146       // udp port for backend server A.
+#define UDPPORT_B           22146       // udp port for backend server B.
+#define UDPPORT_C           23146       // udp port for backend server C.
+#define TCPPORTFORCLIENT    25146       // tcp port for client.
+#define TCPPORTFORMONITOR   26146       // tcp port for monitor.
 
 enum FUNCTION {
     FUNC_SEARCH,
@@ -56,9 +59,46 @@ int start_server(const int & port)
     }
     return -1;
 }
+/*************************************************
+  Description: [Business] process request.
+*************************************************/
+void process_request(const int & port, const FUNCTION & func, const char * input, int * out_matches, char ** out_result)
+{
+    if (!out_result)
+        return;
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (-1 != sockfd)
+    {
+        // send to...
+        sockaddr_in addr_server;
+        bzero(&addr_server, sizeof(sockaddr_in));
+        addr_server.sin_family = AF_INET;
+        addr_server.sin_addr.s_addr = inet_addr(SERVERIP);
+        addr_server.sin_port = htons(port);
+        socklen_t len = sizeof(sockaddr_in);
+        char * buf_send = new char[28];
+        sprintf(buf_send, "%d%s", func, input);
+        sendto(sockfd, buf_send, 28, 0, (sockaddr *)&addr_server, len);
+
+        // recv from...
+        char ch_cmd;
+        recvfrom(sockfd, &ch_cmd, 1, 0, (sockaddr *)&addr_server, &len);
+        char str_matches_count[8];
+        recvfrom(sockfd, str_matches_count, 8, 0, (sockaddr *)&addr_server, &len);
+        *out_matches = str_to_int(str_matches_count);
+        char str_len_result[8];
+        recvfrom(sockfd, str_len_result, 8, 0, (sockaddr *)&addr_server, &len);
+        int len_result = str_to_int(str_len_result);
+        *out_result = new char[len_result + 1];
+        bzero(*out_result, len_result + 1);
+        int l = recvfrom(sockfd, *out_result, len_result, 0, (sockaddr *)&addr_server, &len);
+        (*out_result)[l] = '\0';
+    }
+    return;
+}
 
 /*************************************************
-  Description： [Helper] entry.
+  Description： [Business] entry.
 *************************************************/
 int main(int argc, char const *argv[])
 {
@@ -93,11 +133,15 @@ int main(int argc, char const *argv[])
             buf_recv[len] = '\0';
             printf("The AWS received input=<%s> and function=<%s> from the client using TCP over port %d.\n",
                     buf_recv, func == FUNC_SEARCH ? "search" : "prefix", TCPPORTFORCLIENT);
+            
+            // process request
+            int matches_count = 0;
+            char * result = new char();
+            process_request(UDPPORT_A, func, buf_recv, &matches_count, &result);
+            printf("The AWS sent <%s> and <%s> to Backend-Server A", buf_recv, func == FUNC_SEARCH ? "search" : "prefix");
             delete buf_recv;
 
             // send response
-            const int matches_count = 1;
-            const char * result = "<test>\n";
             int len_result = strlen(result);
             char * buf_send = new char[1 + 8 + 8 + len_result];
             bzero(buf_send, 1 + 8 + 8 + len_result);
