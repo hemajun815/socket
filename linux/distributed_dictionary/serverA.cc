@@ -9,7 +9,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define UDPPORT             21146 // udp port.
+#define UDPPORT             21146           // udp port.
+#define FILENAME            "backendA.txt"  // data file.
+#define MAXLINECOUNT        1024            // max line count.
 
 enum FUNCTION {
     FUNC_SEARCH,
@@ -33,6 +35,42 @@ int str_to_int(const char * str)
 }
 
 /*************************************************
+  Description: substring
+*************************************************/
+const char * substring(const char * str, const int & start, const int & len)
+{
+    char * new_str = new char[len + 1];
+    for (int i = 0; i < len; i++)
+        new_str[i] = str[i + start];
+    new_str[len] = '\0';
+    return new_str;
+}
+
+/*************************************************
+  Description: substring
+*************************************************/
+const char * substring(const char * str, const int & start)
+{
+    return substring(str, start, strlen(str) - start - 1);
+}
+
+/*************************************************
+  Description: Determine if str1 is a prefix of str2.
+  if prefix, return 1; else reture 0.
+*************************************************/
+int prefix(const char * str1, const char * str2)
+{
+    int ret = 0;
+    int len_str1 = strlen(str1);
+    int len_str2 = strlen(str2);
+    if (len_str1 <= len_str2 && !strcmp(str1, substring(str2, 0, len_str1)))
+    {
+        ret = 1;
+    }
+    return ret;
+}
+
+/*************************************************
   Description： [Business] start server.
   if success, return sockfd; else return -1.
 *************************************************/
@@ -52,6 +90,40 @@ int start_server(const int & port)
     }
     return -1;
 }
+/*************************************************
+  Description: [Business] get data from file.
+*************************************************/
+void get_data(const char * input, int * out_matches, char ** out_result)
+{
+    FILE * fp = fopen(FILENAME, "r");
+    if (!fp)
+    {
+        fprintf(stderr, "Open file failure.\n");
+        return;
+    }
+    int len_input = strlen(input);
+    char * key = new char[len_input + 4];
+    strcpy(key, input);
+    strcpy(key + len_input, " :: ");
+    char * buf = new char[MAXLINECOUNT];
+    bzero(buf, MAXLINECOUNT);
+    while(fgets(buf, MAXLINECOUNT, fp))
+    {
+        if (prefix(key, buf))
+        {
+            ++(*out_matches);
+            int len = strlen(buf) - (len_input + 4);
+            *out_result = new char[len + 2];
+            (*out_result)[0] = '<';
+            strcpy((*out_result) + 1, buf + len_input + 4);
+            strcpy((*out_result) + len, ">\n");
+            break;
+        }
+        bzero(buf, MAXLINECOUNT);
+    }
+    delete key;
+    fclose(fp);
+}
 
 /*************************************************
   Description: [Business] process request and send back response.
@@ -70,10 +142,11 @@ void process_request(const int & sockfd)
     int len = recvfrom(sockfd, buf_recv, len_input, 0, (sockaddr *)&addr_aws, &len_addr);
     buf_recv[len] = '\0';
     printf("The ServerA received input <%s> and operation <%s>.\n", buf_recv, func == FUNC_SEARCH ? "search" : "prefix");
-    delete buf_recv;
 
-    const int matches_count = 1;
-    const char * result = "<test>\n";
+    int matches_count = 0;
+    char * result = new char();
+    get_data(buf_recv, &matches_count, &result);
+    delete buf_recv;
 
     // send response
     char str_func[1];
