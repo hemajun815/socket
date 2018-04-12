@@ -72,15 +72,21 @@ void process_request(const int & sockfd)
     printf("The ServerA received input <%s> and operation <%s>.\n", buf_recv, func == FUNC_SEARCH ? "search" : "prefix");
     delete buf_recv;
 
-    // send response
     const int matches_count = 1;
     const char * result = "<test>\n";
+
+    // send response
+    char str_func[1];
+    sprintf(str_func, "%d", func);
+    sendto(sockfd, str_func, 1, 0, (sockaddr *)&addr_aws, len_addr);
+    char str_matches_count[8];
+    sprintf(str_matches_count, "%8d", matches_count);
+    sendto(sockfd, str_matches_count, 8, 0, (sockaddr *)&addr_aws, len_addr);
     int len_result = strlen(result);
-    char * buf_send = new char[1 + 8 + 8 + len_result];
-    bzero(buf_send, 1 + 8 + 8 + len_result);
-    sprintf(buf_send, "%d%8d%8d%s", func, matches_count, len_result, result);
-    sendto(sockfd, buf_send, 1 + 8 + 8 + len_result, 0, (sockaddr *)&addr_aws, len_addr);
-    delete buf_send;
+    char str_len_result[8];
+    sprintf(str_len_result, "%8d", len_result);
+    sendto(sockfd, str_len_result, 8, 0, (sockaddr *)&addr_aws, len_addr);
+    sendto(sockfd, result, len_result, 0, (sockaddr *)&addr_aws, len_addr);
     printf("The ServerA finished sending the output to AWS.\n");
 }
 

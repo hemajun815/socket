@@ -76,9 +76,10 @@ void process_request(const int & port, const FUNCTION & func, const char * input
         addr_server.sin_addr.s_addr = inet_addr(SERVERIP);
         addr_server.sin_port = htons(port);
         socklen_t len = sizeof(sockaddr_in);
-        char * buf_send = new char[28];
-        sprintf(buf_send, "%d%s", func, input);
-        sendto(sockfd, buf_send, 28, 0, (sockaddr *)&addr_server, len);
+        char str_func[1];
+        sprintf(str_func, "%d", func);
+        sendto(sockfd, str_func, 1, 0, (sockaddr *)&addr_server, len);
+        sendto(sockfd, input, 27, 0, (sockaddr *)&addr_server, len);
 
         // recv from...
         char ch_cmd;
@@ -138,7 +139,7 @@ int main(int argc, char const *argv[])
             int matches_count = 0;
             char * result = new char();
             process_request(UDPPORT_A, func, buf_recv, &matches_count, &result);
-            printf("The AWS sent <%s> and <%s> to Backend-Server A", buf_recv, func == FUNC_SEARCH ? "search" : "prefix");
+            printf("The AWS sent <%s> and <%s> to Backend-Server A.\n", buf_recv, func == FUNC_SEARCH ? "search" : "prefix");
             delete buf_recv;
 
             // send response
