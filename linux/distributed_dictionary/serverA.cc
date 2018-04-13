@@ -1,7 +1,7 @@
 /*************************************************
-  Filename: serverA.cc
+  Filename: serverB.cc
   Creator: Hemajun
-  Description: backend server A.
+  Description: backend server B
 *************************************************/
 #include <stdio.h>
 #include <string.h>
@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #define UDPPORT             21146           // udp port.
+#define SERVERNAME          "ServerA"       // server name.
 #define FILENAME            "backendA.txt"  // data file.
 #define MAXLINECOUNT        1024            // max line count.
 
@@ -35,39 +36,30 @@ int str_to_int(const char * str)
 }
 
 /*************************************************
-  Description: substring
+  Description: [Helper] parse int to 8-len string.
 *************************************************/
-const char * substring(const char * str, const int & start, const int & len)
+const char * int_to_str(const int & n)
 {
-    char * new_str = new char[len + 1];
-    for (int i = 0; i < len; i++)
-        new_str[i] = str[i + start];
-    new_str[len] = '\0';
-    return new_str;
+    char * number = new char[8];
+    bzero(number, 8);
+    sprintf(number, "%8d", n);
+    return number;
 }
 
 /*************************************************
-  Description: substring
+  Description: [Helper] substring.
 *************************************************/
-const char * substring(const char * str, const int & start)
+const char * substring(const char * src, const int & start, const int & len = -1)
 {
-    return substring(str, start, strlen(str) - start - 1);
-}
-
-/*************************************************
-  Description: Determine if str1 is a prefix of str2.
-  if prefix, return 1; else reture 0.
-*************************************************/
-int prefix(const char * str1, const char * str2)
-{
-    int ret = 0;
-    int len_str1 = strlen(str1);
-    int len_str2 = strlen(str2);
-    if (len_str1 <= len_str2 && !strcmp(str1, substring(str2, 0, len_str1)))
-    {
-        ret = 1;
-    }
-    return ret;
+    int len_src = strlen(src);
+    int len_sub = len > 0 ? len : len_src - start;
+    if (len_sub > len_src)
+        return "";
+    char * sub_str = new char[len_sub + 1];
+    for (int i = 0; i < len_sub; i++)
+        sub_str[i] = src[i + start];
+    sub_str[len_sub] = '\0';
+    return sub_str;
 }
 
 /*************************************************
@@ -90,18 +82,21 @@ int start_server(const int & port)
     }
     return -1;
 }
+
 /*************************************************
-  Description: [Business] get data from file.
+  Description: [Business] search definition by key.
 *************************************************/
-void get_data(const char * input, int * out_matches, char ** out_result)
+void search(const char * input, int * out_matches_count, char ** out_definition, int * out_one_edit_count, 
+            char ** out_one_edit, char ** out_one_edit_definition)
 {
+    *out_matches_count = 0;
+    *out_one_edit_count = 0;
+    int len_input = strlen(input);
+    if (len_input == 0 || !out_definition)
+        return;
     FILE * fp = fopen(FILENAME, "r");
     if (!fp)
-    {
-        fprintf(stderr, "Open file failure.\n");
         return;
-    }
-    int len_input = strlen(input);
     char * key = new char[len_input + 4];
     strcpy(key, input);
     strcpy(key + len_input, " :: ");
@@ -109,20 +104,98 @@ void get_data(const char * input, int * out_matches, char ** out_result)
     bzero(buf, MAXLINECOUNT);
     while(fgets(buf, MAXLINECOUNT, fp))
     {
-        if (prefix(key, buf))
+        // match
+        if (!*out_matches_count && !strcmp(key, substring(buf, 0, len_input + 4)))
         {
-            ++(*out_matches);
-            int len = strlen(buf) - (len_input + 4);
-            *out_result = new char[len + 2];
-            (*out_result)[0] = '<';
-            strcpy((*out_result) + 1, buf + len_input + 4);
-            strcpy((*out_result) + len, ">\n");
-            break;
+            int len_definition = strlen(buf) - (len_input + 4) + 2;
+            *out_definition = new char[len_definition];
+            (*out_definition)[0] = '<';
+            strcpy((*out_definition) + 1, buf + len_input + 4);
+            strcpy((*out_definition) + len_definition - 2, ">\n");
+            *out_matches_count = 1;
         }
+        // one-edit
+        if (!*out_one_edit_count)
+        {
+            int edit = 0;
+            for (int i = 0; i < len_input; i++)
+            {
+                if (input[i] != buf[i])
+                    ++edit;
+                if (edit > 1)
+                    break;
+            }
+            if (edit == 1 && !strcmp(substring(buf, len_input, 4), " :: "))
+            {
+                *out_one_edit = new char[len_input + 2];
+                (*out_one_edit)[0] = '<';
+                strcpy((*out_one_edit) + 1, substring(buf, 0, len_input));
+                (*out_one_edit)[len_input + 1] = '>';
+                int len_one_edit_definition = strlen(buf) - (len_input + 4) + 2;
+                *out_one_edit_definition = new char[len_one_edit_definition];
+                (*out_one_edit_definition)[0] = '<';
+                strcpy((*out_one_edit_definition) + 1, buf + len_input + 4);
+                strcpy((*out_one_edit_definition) + len_one_edit_definition - 2, ">\n");
+                *out_one_edit_count = 1;
+            }
+        }
+        if (*out_matches_count && *out_one_edit_count)
+            break;
         bzero(buf, MAXLINECOUNT);
     }
-    delete key;
     fclose(fp);
+    delete key;
+    delete buf;
+    return;
+}
+
+/*************************************************
+  Description: [Business] search keys by prefix.
+*************************************************/
+void prefix(const char * input, int * out_count, char ** out_string)
+{
+    *out_count = 0;
+    int len_input = strlen(input);
+    if (len_input == 0 || !out_string)
+        return;
+    FILE * fp = fopen(FILENAME, "r");
+    if (!fp)
+        return;
+    char * key = new char[len_input + 4];
+    strcpy(key, input);
+    strcpy(key + len_input, " :: ");
+    char * buf = new char[MAXLINECOUNT];
+    bzero(buf, MAXLINECOUNT);
+    while(fgets(buf, MAXLINECOUNT, fp))
+    {
+        if (!strcmp(input, substring(buf, 0, len_input)) && strcmp(key, substring(buf, 0, len_input + 4)))
+        {
+            char * p = strstr(buf, " :: ");
+            char * q = buf;
+            int i = 0;
+            while(q != p)
+            {
+                ++q;
+                ++i;
+            }
+            int len_word = i + 3;
+            char * word = new char[len_word];
+            word[0] = '<';
+            strcpy(word + 1, substring(buf, 0, i));
+            strcpy(word + len_word - 2, ">\n");
+            int len_string = strlen(*out_string);
+            char * new_string = new char[len_string + len_word];
+            strcpy(new_string, *out_string);
+            strcpy(new_string + len_string, word);
+            delete *out_string;
+            *out_string = new_string;
+            ++(*out_count);
+        }
+    }
+    fclose(fp);
+    delete key;
+    delete buf;
+    return;
 }
 
 /*************************************************
@@ -130,37 +203,65 @@ void get_data(const char * input, int * out_matches, char ** out_result)
 *************************************************/
 void process_request(const int & sockfd)
 {
-    // recv request
+    // request
     char ch_cmd;
     sockaddr_in addr_aws;
     socklen_t len_addr = sizeof(sockaddr_in);
     recvfrom(sockfd, &ch_cmd, 1, 0, (sockaddr *)&addr_aws, &len_addr);
     FUNCTION func = FUNCTION(str_to_int(&ch_cmd));
     int len_input = 27;
-    char * buf_recv = new char[len_input + 1];
-    bzero(buf_recv, len_input);
-    int len = recvfrom(sockfd, buf_recv, len_input, 0, (sockaddr *)&addr_aws, &len_addr);
-    buf_recv[len] = '\0';
-    printf("The ServerA received input <%s> and operation <%s>.\n", buf_recv, func == FUNC_SEARCH ? "search" : "prefix");
+    char * input = new char[len_input + 1];
+    bzero(input, len_input);
+    int len = recvfrom(sockfd, input, len_input, 0, (sockaddr *)&addr_aws, &len_addr);
+    input[len] = '\0';
+    printf("The %s received input <%s> and operation <%s>.\n", SERVERNAME, input, func == FUNC_SEARCH ? "search" : "prefix");
 
-    int matches_count = 0;
-    char * result = new char();
-    get_data(buf_recv, &matches_count, &result);
-    delete buf_recv;
-
-    // send response
-    char str_func[1];
-    sprintf(str_func, "%d", func);
-    sendto(sockfd, str_func, 1, 0, (sockaddr *)&addr_aws, len_addr);
-    char str_matches_count[8];
-    sprintf(str_matches_count, "%8d", matches_count);
-    sendto(sockfd, str_matches_count, 8, 0, (sockaddr *)&addr_aws, len_addr);
-    int len_result = strlen(result);
-    char str_len_result[8];
-    sprintf(str_len_result, "%8d", len_result);
-    sendto(sockfd, str_len_result, 8, 0, (sockaddr *)&addr_aws, len_addr);
-    sendto(sockfd, result, len_result, 0, (sockaddr *)&addr_aws, len_addr);
-    printf("The ServerA finished sending the output to AWS.\n");
+    // response
+    switch (func)
+    {
+        case FUNC_SEARCH:
+        {
+            int matches_count = 0;
+            char * definition = new char();
+            int one_edit_count = 0;
+            char * one_edit = new char();
+            char * one_edit_definition = new char();
+            search(input, &matches_count, &definition, &one_edit_count, &one_edit, &one_edit_definition);
+            sendto(sockfd, int_to_str(matches_count), 8, 0, (sockaddr*)&addr_aws, len_addr);
+            if (matches_count)
+            {
+                int len_definition = strlen(definition);
+                sendto(sockfd, int_to_str(len_definition), 8, 0, (sockaddr*)&addr_aws, len_addr);
+                sendto(sockfd, definition, len_definition, 0, (sockaddr*)&addr_aws, len_addr);
+            }
+            sendto(sockfd, int_to_str(one_edit_count), 8, 0, (sockaddr*)&addr_aws, len_addr);
+            if (one_edit_count)
+            {
+                int len_one_edit = strlen(one_edit);
+                sendto(sockfd, int_to_str(len_one_edit), 8, 0, (sockaddr*)&addr_aws, len_addr);
+                sendto(sockfd, one_edit, len_one_edit, 0, (sockaddr*)&addr_aws, len_addr);
+                int len_one_edit_definition = strlen(one_edit_definition);
+                sendto(sockfd, int_to_str(len_one_edit_definition), 8, 0, (sockaddr*)&addr_aws, len_addr);
+                sendto(sockfd, one_edit_definition, len_one_edit_definition, 0, (sockaddr*)&addr_aws, len_addr);
+            }
+        }
+        break;
+        case FUNC_PREFIX:
+        {
+            int prefix_count = 0;
+            char * prefix_string = new char();
+            prefix(input, &prefix_count, &prefix_string);
+            sendto(sockfd, int_to_str(prefix_count), 8, 0, (sockaddr*)&addr_aws, len_addr);
+            if (prefix_count)
+            {
+                int len_prefix_string = strlen(prefix_string);
+                sendto(sockfd, int_to_str(len_prefix_string), 8, 0, (sockaddr*)&addr_aws, len_addr);
+                sendto(sockfd, prefix_string, len_prefix_string, 0, (sockaddr*)&addr_aws, len_addr);
+            }
+        }
+        break;
+    }
+    printf("The %s finished sending the output to AWS.\n", SERVERNAME);
 }
 
 /*************************************************
@@ -172,14 +273,13 @@ int main(int argc, char const *argv[])
     int sockfd = start_server(UDPPORT);
     if (-1 == sockfd)
     {
-        fprintf(stderr, "Boot backend server A failure.\n");
+        fprintf(stderr, "Boot backend %s failure.\n", SERVERNAME);
         return -1;
     }
-    printf("The ServerA is up and running using UDP on port <%d>.\n", UDPPORT);
+    printf("The %s is up and running using UDP on port <%d>.\n", SERVERNAME, UDPPORT);
 
     // whole loop
     while(1)
         process_request(sockfd);
-
     return 0;
 }
