@@ -1,6 +1,6 @@
 cc = g++
 
-all: serverA serverB serverC aws client
+all: serverA serverB serverC aws monitor client
 
 bin:
 	test -d bin || mkdir -p bin
@@ -16,6 +16,9 @@ serverC: bin serverC.cc
 
 aws: bin aws.cc
 	$(cc) aws.cc -o bin/aws.out
+
+monitor: bin monitor.cc
+	$(cc) monitor.cc -o bin/monitor.out
 
 client: bin client.cc
 	$(cc) client.cc -o bin/client.out
