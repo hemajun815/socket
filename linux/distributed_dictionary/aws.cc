@@ -64,6 +64,10 @@ void search(const int & port, const char * input, int * out_matches, char ** out
     socklen_t len = sizeof(sockaddr_in);
 
     send_udp_request(sockfd, addr_server, len, FUNC_SEARCH, input);
+    char flag = 'A';
+    if (port == UDPPORT_B) flag = 'B';
+    if (port == UDPPORT_C) flag = 'C';
+    printf("The AWS sent <%s> and <search> to Backend-Server %c.\n", input, flag);
 
     char number[8];
     bzero(number, 8);
@@ -77,6 +81,7 @@ void search(const int & port, const char * input, int * out_matches, char ** out
         *out_definition = new char[len_definition];
         recvfrom(sockfd, *out_definition, len_definition, 0, (sockaddr *)&addr_server, &len);
     }
+    printf("The AWS received <%d> match(es) from Backend-Server <%c> using UDP over port <%d>.\n", *out_matches, flag, port);
     bzero(number, 8);
     recvfrom(sockfd, number, 8, 0, (sockaddr *)&addr_server, &len);
     *out_one_edit_count = str_to_int(number);
@@ -144,6 +149,10 @@ void prefix(const int & port, const char * input, int * out_count, char ** out_s
     socklen_t len = sizeof(sockaddr_in);
 
     send_udp_request(sockfd, addr_server, len, FUNC_PREFIX, input);
+    char flag = 'A';
+    if (port == UDPPORT_B) flag = 'B';
+    if (port == UDPPORT_C) flag = 'C';
+    printf("The AWS sent <%s> and <prefix> to Backend-Server %c.\n", input, flag);
 
     char number[8];
     bzero(number, 8);
@@ -157,6 +166,7 @@ void prefix(const int & port, const char * input, int * out_count, char ** out_s
         *out_string = new char[len_prefix_string];
         recvfrom(sockfd, *out_string, len_prefix_string, 0, (sockaddr *)&addr_server, &len);
     }
+    printf("The AWS received <%d> match(es) from Backend-Server <%c> using UDP over port <%d>.\n", *out_count, flag, port);
 }
 
 /*************************************************
