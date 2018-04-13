@@ -234,6 +234,7 @@ void process_request(const int & sockfd)
             char * one_edit = new char();
             char * one_edit_definition = new char();
             search(input, &matches_count, &definition, &one_edit_count, &one_edit, &one_edit_definition);
+            printf("The %s has found <%d> matches.\n", SERVERNAME, matches_count);
             sendto(sockfd, int_to_str(matches_count), 8, 0, (sockaddr*)&addr_aws, len_addr);
             if (matches_count)
             {
@@ -258,6 +259,7 @@ void process_request(const int & sockfd)
             int prefix_count = 0;
             char * prefix_string = new char();
             prefix(input, &prefix_count, &prefix_string);
+            printf("The %s has found <%d> matches.\n", SERVERNAME, prefix_count);
             sendto(sockfd, int_to_str(prefix_count), 8, 0, (sockaddr*)&addr_aws, len_addr);
             if (prefix_count)
             {

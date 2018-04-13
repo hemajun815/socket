@@ -66,33 +66,6 @@ int connect_to_server(const char * server_ip, const int & server_port)
 }
 
 /*************************************************
-  Description: [Business] preocess response.
-*************************************************/
-void process_response(const int & sockfd, FUNCTION func, const char * input)
-{
-    char str_matches_count[8], str_len_result[8];
-    recv(sockfd, str_matches_count, 8, 0);
-    int matches_count = str_to_int(str_matches_count);
-    if (matches_count == 0)
-    {
-        printf("Found no matches for '%s'.\n", input);
-        return;
-    }
-    else if (matches_count == 1)
-        printf("Found a match for <%s>:\n", input);
-    else
-        printf("Found <%d> matches for <%s>:\n", matches_count, input);
-    recv(sockfd, str_len_result, 8, 0);
-    int len_result = str_to_int(str_len_result);
-    char * buf = new char[len_result + 1];
-    bzero(buf, len_result + 1);
-    int len = recv(sockfd, buf, len_result, 0);
-    buf[len] = '\0';
-    printf("%s", buf);
-    delete buf;
-}
-
-/*************************************************
   Description： [Business] entry.
 *************************************************/
 int main(int argc, char const *argv[])
@@ -123,7 +96,46 @@ int main(int argc, char const *argv[])
     // recv response
     char ch_cmd;
     recv(sockfd, &ch_cmd, 1, 0);
-    process_response(sockfd, (FUNCTION)str_to_int(&ch_cmd), argv[2]);
+    switch ((FUNCTION)str_to_int(&ch_cmd))
+    {
+        case FUNC_SEARCH:
+        {
+            char number[8];
+            bzero(number, 8);
+            recv(sockfd, number, 8, 0);
+            int len_definition = str_to_int(number);
+            if (len_definition)
+            {
+                char * buf = new char[len_definition];
+                recv(sockfd, buf, len_definition, 0);
+                printf("Found a match for <%s>:\n%s", argv[2], buf);
+                delete buf;
+            }
+            else
+                printf("Found no match for <%s>:\n", argv[2]);
+        }
+        break;
+        case FUNC_PREFIX:
+        {
+            char number[8];
+            bzero(number, 8);
+            recv(sockfd, number, 8, 0);
+            int prefix_count = str_to_int(number);
+            if (prefix_count)
+            {
+                bzero(number, 8);
+                recv(sockfd, number, 8, 0);
+                int len_prefix_string = str_to_int(number);
+                char * buf = new char[len_prefix_string];
+                recv(sockfd, buf, len_prefix_string, 0);
+                printf("Found <%d> match(es) for <%s>:\n%s", prefix_count, argv[2], buf);
+                delete buf;
+            }
+            else
+                printf("Found no match for <%s>:\n", argv[2]);
+        }
+        break;
+    }
 
     // close connection.
     close(sockfd);
