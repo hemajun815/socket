@@ -280,27 +280,5 @@ int main(int argc, char const *argv[])
     // whole loop
     while(1)
         process_request(sockfd);
-
-    const char * input = "Alpia";
-
-    int matches_count = 0;
-    char * definition = new char();
-    int one_edit_count = 0;
-    char * one_edit = new char();
-    char * one_edit_definition = new char();
-    search(input, &matches_count, &definition, &one_edit_count, &one_edit, &one_edit_definition);
-    if (matches_count)
-        printf("Found a match for <%s>:\n%s", input, definition);
-    else
-        printf("Found no match for <%s>.\n", input);
-    if (one_edit_count)
-        printf("One edit distance match is %s:\n%s", one_edit, one_edit_definition);
-    
-    int prefix_count = 0;
-    char * prefix_string = new char();
-    prefix(input, &prefix_count, &prefix_string);
-    if (prefix_count)
-        printf("Found <%d> matches for <%s>:\n%s", prefix_count, input, prefix_string);
-
     return 0;
 }
