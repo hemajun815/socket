@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #define UDPPORT             22146           // udp port.
+#define SERVERNAME          "ServerB"       // server name.
 #define FILENAME            "backendB.txt"  // data file.
 #define MAXLINECOUNT        1024            // max line count.
 
@@ -213,7 +214,7 @@ void process_request(const int & sockfd)
     bzero(input, len_input);
     int len = recvfrom(sockfd, input, len_input, 0, (sockaddr *)&addr_aws, &len_addr);
     input[len] = '\0';
-    printf("The ServerB received input <%s> and operation <%s>.\n", input, func == FUNC_SEARCH ? "search" : "prefix");
+    printf("The %s received input <%s> and operation <%s>.\n", SERVERNAME, input, func == FUNC_SEARCH ? "search" : "prefix");
 
     // response
     switch (func)
@@ -260,7 +261,7 @@ void process_request(const int & sockfd)
         }
         break;
     }
-    printf("The ServerB finished sending the output to AWS.\n");
+    printf("The %s finished sending the output to AWS.\n", SERVERNAME);
 }
 
 /*************************************************
@@ -272,10 +273,10 @@ int main(int argc, char const *argv[])
     int sockfd = start_server(UDPPORT);
     if (-1 == sockfd)
     {
-        fprintf(stderr, "Boot backend server A failure.\n");
+        fprintf(stderr, "Boot backend %s failure.\n", SERVERNAME);
         return -1;
     }
-    printf("The ServerA is up and running using UDP on port <%d>.\n", UDPPORT);
+    printf("The %s is up and running using UDP on port <%d>.\n", SERVERNAME, UDPPORT);
 
     // whole loop
     while(1)
