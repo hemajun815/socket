@@ -112,7 +112,7 @@ int main(int argc, char const *argv[])
                 delete buf;
             }
             else
-                printf("Found no match for <%s>:\n", argv[2]);
+                printf("Found no match for <%s>.\n", argv[2]);
         }
         break;
         case FUNC_PREFIX:
@@ -132,7 +132,7 @@ int main(int argc, char const *argv[])
                 delete buf;
             }
             else
-                printf("Found no match for <%s>:\n", argv[2]);
+                printf("Found no match for <%s>.\n", argv[2]);
         }
         break;
     }

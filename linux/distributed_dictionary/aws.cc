@@ -14,7 +14,7 @@
 #define UDPPORT_B           22146       // udp port for backend server B.
 #define UDPPORT_C           23146       // udp port for backend server C.
 #define TCPPORTFORCLIENT    25146       // tcp port for client.
-// #define TCPPORTFORMONITOR   26146       // tcp port for monitor.
+#define TCPPORTFORMONITOR   26146       // tcp port for monitor.
 
 enum FUNCTION {
     FUNC_SEARCH,
@@ -234,6 +234,14 @@ int main(int argc, char const *argv[])
     }
     printf("The AWS is up and running.\n");
 
+    int conn_monitor = -1;
+    sockaddr_in addr_monitor;
+    socklen_t socklen_monitor = sizeof(addr_monitor);
+    if (-1 == (conn_monitor = accept(sock_client, (sockaddr *)&addr_monitor, &socklen_monitor)))
+    {
+        fprintf(stderr, "Accept connection from monitor failure.\n");
+        return -1;
+    }
     // whole loop
     while (1)
     {
@@ -276,10 +284,26 @@ int main(int argc, char const *argv[])
                         sprintf(res_client, "%d%8d", FUNC_SEARCH, (int)strlen(definition));
                     }
                     send(conn_client, res_client, len_res_client, 0);
-                    delete res_client;
                     printf("The AWS sent <%d> matches to client.\n", matches_count);
+                    int len_res_monitor = -1;
+                    char * res_monitor = NULL;
                     if (one_edit_count)
-                        printf("One edit distance match is %s:\n%s", one_edit, one_edit_definition);
+                    {
+                        len_res_monitor = len_res_client + 8 + strlen(one_edit) + 8 + strlen(one_edit_definition);
+                        res_monitor = new char[len_res_monitor];
+                        sprintf(res_monitor, "%s%8d%s%8d%s", res_client, (int)strlen(one_edit), one_edit, 
+                                (int)strlen(one_edit_definition), one_edit_definition);
+                    }
+                    else
+                    {
+                        len_res_monitor = len_res_client + 8;
+                        res_monitor = new char[len_res_monitor];
+                        sprintf(res_monitor, "%s%8d", res_client, one_edit_count);
+                    }
+                    send(conn_monitor, res_monitor, len_res_monitor, 0);
+                    printf("The AWS sent <%s> and <%s> to the monitor via TCP port %d.\n", input, one_edit, TCPPORTFORMONITOR);
+                    delete res_monitor;
+                    delete res_client;
                 }
                 break;
                 case FUNC_PREFIX:
@@ -287,24 +311,26 @@ int main(int argc, char const *argv[])
                     int prefix_count = 0;
                     char * prefix_string = new char();
                     process_prefix(input, &prefix_count, &prefix_string);
-                    int len_res_client = -1;
-                    char * res_client = NULL;
+                    int len_res = -1;
+                    char * res = NULL;
                     if (prefix_count)
                     {
-                        len_res_client = 1 + 8 + 8 + strlen(prefix_string);
-                        res_client = new char[len_res_client];
-                        sprintf(res_client, "%d%8d%8d%s", FUNC_PREFIX, prefix_count, (int)strlen(prefix_string), 
+                        len_res = 1 + 8 + 8 + strlen(prefix_string);
+                        res = new char[len_res];
+                        sprintf(res, "%d%8d%8d%s", FUNC_PREFIX, prefix_count, (int)strlen(prefix_string), 
                                 prefix_string);
                     }
                     else
                     {
-                        len_res_client = 1 + 8;
-                        res_client = new char[len_res_client];
-                        sprintf(res_client, "%d%8d", FUNC_PREFIX, prefix_count);
+                        len_res = 1 + 8;
+                        res = new char[len_res];
+                        sprintf(res, "%d%8d", FUNC_PREFIX, prefix_count);
                     }
-                    send(conn_client, res_client, len_res_client, 0);
-                    delete res_client;
+                    send(conn_client, res, len_res, 0);
                     printf("The AWS sent <%d> matches to client.\n", prefix_count);
+                    send(conn_monitor, res, len_res, 0);
+                    printf("The AWS sent <%d> matches to the monitor via TCP port %d.\n", prefix_count, TCPPORTFORMONITOR);
+                    delete res;
                 }
                 break;
             }
