@@ -1,7 +1,7 @@
 /*************************************************
-  Filename: serverB.cc
+  Filename: serverA.cc
   Creator: Hemajun
-  Description: backend server B
+  Description: backend server A
 *************************************************/
 #include <stdio.h>
 #include <string.h>
