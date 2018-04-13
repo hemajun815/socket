@@ -1,7 +1,7 @@
 /*************************************************
-  Filename: serverA.cc
+  Filename: serverC.cc
   Creator: Hemajun
-  Description: backend server A
+  Description: backend server C
 *************************************************/
 #include <stdio.h>
 #include <string.h>
@@ -9,9 +9,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define UDPPORT             21146           // udp port.
-#define SERVERNAME          "ServerA"       // server name.
-#define FILENAME            "backendA.txt"  // data file.
+#define UDPPORT             23146           // udp port.
+#define SERVERNAME          "ServerC"       // server name.
+#define FILENAME            "backendC.txt"  // data file.
 #define MAXLINECOUNT        1024            // max line count.
 
 enum FUNCTION {
