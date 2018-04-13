@@ -164,6 +164,8 @@ void prefix(const char * input, int * out_count, char ** out_string)
     char * key = new char[len_input + 4];
     strcpy(key, input);
     strcpy(key + len_input, " :: ");
+    char ** p_word = new char*[2000];
+    int len_out_string = 0;
     char * buf = new char[MAXLINECOUNT];
     bzero(buf, MAXLINECOUNT);
     while(fgets(buf, MAXLINECOUNT, fp))
@@ -179,22 +181,27 @@ void prefix(const char * input, int * out_count, char ** out_string)
                 ++i;
             }
             int len_word = i + 3;
-            char * word = new char[len_word];
-            word[0] = '<';
-            strcpy(word + 1, substring(buf, 0, i));
-            strcpy(word + len_word - 2, ">\n");
-            int len_string = strlen(*out_string);
-            char * new_string = new char[len_string + len_word];
-            strcpy(new_string, *out_string);
-            strcpy(new_string + len_string, word);
-            delete *out_string;
-            *out_string = new_string;
+            p_word[*out_count] = new char[len_word];
+            p_word[*out_count][0] = '<';
+            strcpy(p_word[*out_count] + 1, substring(buf, 0, i));
+            strcpy(p_word[*out_count] + len_word - 2, ">\n");
             ++(*out_count);
+            len_out_string += len_word;
         }
+        bzero(buf, MAXLINECOUNT);
     }
     fclose(fp);
     delete key;
     delete buf;
+    *out_string = new char[len_out_string];
+    int idx = 0;
+    for (int i = 0; i < *out_count; i++)
+    {
+        strcpy((*out_string) + idx, p_word[i]);
+        idx += strlen(p_word[i]);
+        delete p_word[i];
+    }
+    delete[] p_word;
     return;
 }
 
