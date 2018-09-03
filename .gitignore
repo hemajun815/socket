@@ -1,5 +1,7 @@
+.gitignore
+
 # linux
 *.out
 
 # windows
-out.*
+*.exe
